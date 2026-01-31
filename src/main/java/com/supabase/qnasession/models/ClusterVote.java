@@ -16,7 +16,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "cluster_votes")
+@Table(
+    name = "cluster_votes",
+    uniqueConstraints = @jakarta.persistence.UniqueConstraint(
+        name = "cluster_votes_cluster_id_user_id_key",
+        columnNames = {"cluster_id", "user_id"}
+    )
+)
 @Getter
 @Setter
 @NoArgsConstructor
