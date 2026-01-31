@@ -32,6 +32,9 @@ public class Cluster {
     
     @Column(name = "message_count")
     private Integer messageCount;
+
+    @Column(name = "votes")
+    private Integer votes;
     
     @Column(name = "updated_at")
     private Instant updatedAt;
@@ -41,6 +44,9 @@ public class Cluster {
     protected void onUpdate() {
         if (messageCount == null) {
             messageCount = 0;
+        }
+        if (votes == null) {
+            votes = 0;
         }
         updatedAt = Instant.now();
     }
