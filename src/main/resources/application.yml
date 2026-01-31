@@ -22,3 +22,14 @@ spring:
     idle-timeout: 30000         # 30s
     max-lifetime: 1800000       # 30 min
     connection-timeout: 30000   # wait 30s for a connection
+
+# Supabase Realtime Configuration
+supabase:
+  project-url: https://oywnkekqmfhgioblvbdg.supabase.co
+  anon-key: your-anon-key-here  # Replace with your actual anon key
+  realtime:
+    enabled: true
+    tables:
+      - messages
+      - rooms
+      - clusters
