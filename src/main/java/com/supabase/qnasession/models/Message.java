@@ -25,13 +25,13 @@ public class Message {
     @Column(name = "room_id")
     private String roomId;
     
-    @Column(name = "event_id")
-    private String eventId;
-    
     @Column(name = "user_id")
     private UUID userId;
+
+    @Column(name = "user_name", columnDefinition = "text")
+    private String userName;
     
-    @Column(name = "content", columnDefinition = "text")
+    @Column(name = "content", columnDefinition = "text", nullable = false)
     private String content;
     
     @Column(name = "created_at")
@@ -39,14 +39,17 @@ public class Message {
     
     @Column(name = "cluster_id")
     private UUID clusterId;
-    
-    @Column(name = "clustered_at")
-    private Instant clusteredAt;
+
+    @Column(name = "votes")
+    private Integer votes;
     
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = Instant.now();
+        }
+        if (votes == null) {
+            votes = 0;
         }
     }
 }

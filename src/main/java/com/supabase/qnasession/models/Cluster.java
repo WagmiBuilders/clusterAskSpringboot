@@ -5,11 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -31,9 +27,8 @@ public class Cluster {
     @Column(name = "title", columnDefinition = "text")
     private String title;
     
-    @Column(name = "keywords", columnDefinition = "text[]")
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    private List<String> keywords;
+    @Column(name = "keywords", columnDefinition = "text")
+    private String keywords;
     
     @Column(name = "message_count")
     private Integer messageCount;
@@ -44,6 +39,9 @@ public class Cluster {
     @PrePersist
     @PreUpdate
     protected void onUpdate() {
+        if (messageCount == null) {
+            messageCount = 0;
+        }
         updatedAt = Instant.now();
     }
 }
