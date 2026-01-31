@@ -33,3 +33,8 @@ supabase:
       - messages
       - rooms
       - clusters
+
+# Clustering job configuration
+clustering:
+  poll-interval-ms: 15000
+  initial-delay-ms: 5000
