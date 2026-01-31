@@ -13,10 +13,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,11 +23,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MessageClusteringScheduler {
 
-    private static final String CLUSTER_TITLE_PREFIX = "Auto cluster for ";
-
     private final MessageRepository messageRepository;
     private final ClusterRepository clusterRepository;
     private final RoomRepository roomRepository;
+    private final TopicClustererService topicClustererService;
 
     @Scheduled(
         fixedDelayString = "${clustering.poll-interval-ms:15000}",
@@ -55,29 +52,61 @@ public class MessageClusteringScheduler {
                 continue;
             }
 
-            String title = CLUSTER_TITLE_PREFIX + roomId;
-            Cluster cluster = clusterRepository
-                .findFirstByRoomIdAndTitle(roomId, title)
-                .orElseGet(() -> {
-                    Cluster created = new Cluster();
-                    created.setRoomId(roomId);
-                    created.setTitle(title);
-                    created.setMessageCount(0);
-                    return created;
-                });
-
-            int currentCount = cluster.getMessageCount() == null ? 0 : cluster.getMessageCount();
-            cluster.setKeywords(extractKeywords(pending));
-            cluster.setMessageCount(currentCount + pending.size());
-            cluster = clusterRepository.save(cluster);
-
-            UUID clusterId = cluster.getId();
-            for (Message message : pending) {
-                message.setClusterId(clusterId);
+            Map<UUID, String> topicsByMessageId = topicClustererService.clusterTopics(roomId, pending);
+            if (topicsByMessageId.isEmpty()) {
+                log.warn("No topics returned for room {}; skipping clustering", roomId);
+                continue;
             }
-            messageRepository.saveAll(pending);
 
-            log.info("Clustered {} messages for room {} into cluster {}", pending.size(), roomId, clusterId);
+            Map<String, List<Message>> byTopic = new HashMap<>();
+            Map<String, String> displayTopicByKey = new HashMap<>();
+            for (Message message : pending) {
+                String topic = topicsByMessageId.get(message.getId());
+                if (topic == null || topic.isBlank()) {
+                    continue;
+                }
+                String normalized = normalizeTopic(topic);
+                if (normalized.isBlank()) {
+                    continue;
+                }
+                displayTopicByKey.putIfAbsent(normalized, topic.trim());
+                byTopic.computeIfAbsent(normalized, key -> new ArrayList<>()).add(message);
+            }
+
+            if (byTopic.isEmpty()) {
+                log.warn("No valid topic assignments for room {}; skipping clustering", roomId);
+                continue;
+            }
+
+            for (Map.Entry<String, List<Message>> entry : byTopic.entrySet()) {
+                String topicKey = entry.getKey();
+                String topic = displayTopicByKey.getOrDefault(topicKey, topicKey);
+                List<Message> bucket = entry.getValue();
+
+                Cluster cluster = clusterRepository
+                    .findFirstByRoomIdAndTitle(roomId, topic)
+                    .orElseGet(() -> {
+                        Cluster created = new Cluster();
+                        created.setRoomId(roomId);
+                        created.setTitle(topic);
+                        created.setMessageCount(0);
+                        return created;
+                    });
+
+                int currentCount = cluster.getMessageCount() == null ? 0 : cluster.getMessageCount();
+                cluster.setKeywords(topic);
+                cluster.setMessageCount(currentCount + bucket.size());
+                cluster = clusterRepository.save(cluster);
+
+                UUID clusterId = cluster.getId();
+                for (Message message : bucket) {
+                    message.setClusterId(clusterId);
+                }
+                messageRepository.saveAll(bucket);
+
+                log.info("Clustered {} messages for room {} into topic '{}' (cluster {})",
+                    bucket.size(), roomId, topic, clusterId);
+            }
         }
     }
 
@@ -95,39 +124,17 @@ public class MessageClusteringScheduler {
         return messageRepository.findDistinctRoomIds();
     }
 
-    private String extractKeywords(List<Message> messages) {
-        Map<String, Integer> counts = new HashMap<>();
-        for (Message message : messages) {
-            if (message == null || message.getContent() == null) {
-                continue;
+    private String normalizeTopic(String topic) {
+        String trimmed = topic.trim();
+        int end = trimmed.length();
+        while (end > 0) {
+            char ch = trimmed.charAt(end - 1);
+            if (Character.isLetterOrDigit(ch) || ch == ' ') {
+                break;
             }
-            String[] tokens = message.getContent()
-                .toLowerCase(Locale.ROOT)
-                .split("[^a-z0-9]+");
-            for (String token : tokens) {
-                if (token.length() < 3) {
-                    continue;
-                }
-                counts.merge(token, 1, Integer::sum);
-            }
+            end--;
         }
-
-        if (counts.isEmpty()) {
-            return null;
-        }
-
-        List<Map.Entry<String, Integer>> entries = new ArrayList<>(counts.entrySet());
-        entries.sort(
-            Comparator.<Map.Entry<String, Integer>>comparingInt(Map.Entry::getValue)
-                .reversed()
-                .thenComparing(Map.Entry::getKey)
-        );
-
-        int limit = Math.min(5, entries.size());
-        List<String> top = new ArrayList<>(limit);
-        for (int i = 0; i < limit; i++) {
-            top.add(entries.get(i).getKey());
-        }
-        return String.join(",", top);
+        String cleaned = trimmed.substring(0, end).replaceAll("\\s+", " ").trim();
+        return cleaned.toLowerCase();
     }
 }

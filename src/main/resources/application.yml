@@ -38,3 +38,8 @@ supabase:
 clustering:
   poll-interval-ms: 15000
   initial-delay-ms: 5000
+
+gemini:
+  enabled: true
+  api-key: AIzaSyAAigi7lF-edTDtDSiNTZjJk8l-trO3X1s
+  model: gemini-2.5-flash
