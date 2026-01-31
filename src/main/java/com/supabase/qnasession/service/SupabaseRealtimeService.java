@@ -79,6 +79,10 @@ public class SupabaseRealtimeService {
                 }
             };
             
+            // Add Authorization header
+            client.addHeader("Authorization", "Bearer " + supabaseConfig.getAnonKey());
+            client.addHeader("apikey", supabaseConfig.getAnonKey());
+            
             client.connect();
             
         } catch (Exception e) {
