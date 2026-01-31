@@ -59,8 +59,8 @@ public class SupabaseRealtimeService {
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
                     log.warn("WebSocket connection closed: {} - {}", code, reason);
-                    // Attempt to reconnect after 5 seconds
-                    reconnect();
+                    // Attempt to reconnect after 5 seconds in a separate thread
+                    scheduleReconnect();
                 }
 
                 @Override
@@ -207,16 +207,20 @@ public class SupabaseRealtimeService {
         }
     }
     
-    private void reconnect() {
+    private void scheduleReconnect() {
         new Thread(() -> {
             try {
                 Thread.sleep(5000);
                 log.info("Attempting to reconnect...");
+                if (client != null) {
+                    client.close();
+                }
                 connect();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                log.error("Reconnection interrupted", e);
             }
-        }).start();
+        }, "supabase-reconnect").start();
     }
     
     @PreDestroy
