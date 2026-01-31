@@ -9,6 +9,7 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.handshake.ServerHandshake;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +37,11 @@ public class SupabaseRealtimeService {
             log.info("Supabase Realtime is disabled");
             return;
         }
+
+        if (supabaseConfig.getAnonKey() == null || supabaseConfig.getAnonKey().isBlank()) {
+            log.error("Supabase anon key is missing; realtime connection will not be attempted");
+            return;
+        }
         
         try {
             String wsUrl = supabaseConfig.getRealtimeWsUrl() + 
@@ -44,7 +50,11 @@ public class SupabaseRealtimeService {
             
             log.info("Connecting to Supabase Realtime: {}", wsUrl.replaceAll("apikey=[^&]*", "apikey=***"));
             
-            client = new WebSocketClient(new URI(wsUrl)) {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("apikey", supabaseConfig.getAnonKey());
+            headers.put("Authorization", "Bearer " + supabaseConfig.getAnonKey());
+
+            client = new WebSocketClient(new URI(wsUrl), new Draft_6455(), headers, 10000) {
                 @Override
                 public void onOpen(ServerHandshake handshakedata) {
                     log.info("WebSocket connection opened");

@@ -26,7 +26,7 @@ spring:
 # Supabase Realtime Configuration
 supabase:
   project-url: https://oywnkekqmfhgioblvbdg.supabase.co
-  anon-key: your-anon-key-here  # Replace with your actual anon key
+  anon-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95d25rZWtxbWZoZ2lvYmx2YmRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk4MTkyMzgsImV4cCI6MjA4NTM5NTIzOH0.x4Plp6ufmksM4MpbmnFiIZaOXnthGWYmb8-_VMJQFuI  # Replace with your actual anon key
   realtime:
     enabled: true
     tables:
