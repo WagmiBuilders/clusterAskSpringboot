@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db.oywnkekqmfhgioblvbdg.supabase.co:5432/postgres?sslmode=require
+    username: postgres
+    password: supabase234()*
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update   # use validate or none in production
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+  sql:
+    init:
+      mode: never
+  hikari:
+    maximum-pool-size: 5        # 👈 important (keep under 10)
+    minimum-idle: 1
+    idle-timeout: 30000         # 30s
+    max-lifetime: 1800000       # 30 min
+    connection-timeout: 30000   # wait 30s for a connection
